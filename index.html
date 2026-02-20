@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מעבד כותרות ומחלק קבצים</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <script type="importmap">
+    {
+      "imports": {
+        "react-dom/": "https://esm.sh/react-dom@19.2.4/",
+        "@google/genai": "https://esm.sh/@google/genai@1.41.0",
+        "lucide-react": "https://esm.sh/lucide-react@0.574.0",
+        "react/": "https://esm.sh/react@19.2.4/",
+        "react": "https://esm.sh/react@19.2.4",
+        "jszip": "https://esm.sh/jszip@3.10.1"
+      }
+    }
+    </script>
+
+    <style>
+        body { font-family: 'Assistant', sans-serif; background-color: #f8fafc; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
