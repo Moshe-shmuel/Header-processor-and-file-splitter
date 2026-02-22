@@ -140,14 +140,11 @@ const App: React.FC = () => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
-    // Focus first to trigger onFocus (history push) and any layout shifts (like scrollbars)
     textarea.focus();
     
-    // Use requestAnimationFrame to wait for the layout to settle after focus
     requestAnimationFrame(() => {
       const text = textarea.value;
       
-      // Find the Nth occurrence of the exact header HTML
       let index = -1;
       let currentPos = 0;
       for (let i = 0; i <= occurrenceIndex; i++) {
@@ -166,7 +163,8 @@ const App: React.FC = () => {
           'paddingTop', 'paddingLeft', 'paddingRight', 'paddingBottom',
           'borderLeftWidth', 'borderRightWidth', 'boxSizing',
           'wordBreak', 'letterSpacing', 'textTransform', 'direction',
-          'textAlign', 'textIndent', 'whiteSpace', 'wordWrap', 'overflowWrap'
+          'textAlign', 'textIndent', 'whiteSpace', 'wordWrap', 'overflowWrap',
+          'wordSpacing'
         ];
         
         propsToCopy.forEach(prop => {
@@ -177,13 +175,12 @@ const App: React.FC = () => {
         mirror.style.visibility = 'hidden';
         mirror.style.top = '0';
         mirror.style.left = '-9999px';
-        
-        // clientWidth is the correct width for text wrapping (excludes scrollbars)
         mirror.style.width = textarea.clientWidth + 'px';
         mirror.style.height = 'auto';
         mirror.style.whiteSpace = 'pre-wrap';
         mirror.style.wordWrap = 'break-word';
 
+        // Use textContent for textarea content to match exactly
         mirror.textContent = text.substring(0, index);
         const marker = document.createElement('span');
         marker.textContent = '\u200b'; 
@@ -193,12 +190,18 @@ const App: React.FC = () => {
         const topPos = marker.offsetTop;
         document.body.removeChild(mirror);
 
+        // Calculate scroll position with a slight offset for better visibility
         textarea.scrollTo({
-          top: topPos - 20,
+          top: topPos - 30,
           behavior: 'auto'
         });
 
-        textarea.setSelectionRange(index, index);
+        // Set cursor and selection for visual feedback
+        textarea.setSelectionRange(index, index + headerHtml.length);
+        // Clear selection after a moment to keep it clean but show where we are
+        setTimeout(() => {
+          textarea.setSelectionRange(index, index);
+        }, 800);
       }
     });
   }, [previewIdx]);
@@ -949,9 +952,10 @@ const App: React.FC = () => {
                       value={loadedFiles[previewIdx]?.content || ''}
                       onChange={(e) => handleContentChange(e.target.value)}
                       onFocus={() => pushToHistory()}
-                      className="w-full h-full bg-slate-50 p-6 rounded-2xl border border-slate-200 font-mono text-sm leading-relaxed text-slate-700 outline-none focus:ring-2 focus:ring-blue-400 resize-none overflow-auto"
+                      className="w-full h-full bg-white p-8 rounded-2xl border border-slate-200 font-['Assistant'] text-lg leading-[1.6] text-slate-800 outline-none focus:ring-2 focus:ring-blue-400 resize-none overflow-auto shadow-inner"
                       dir="rtl"
                       placeholder="אין תוכן להצגה או עריכה"
+                      style={{ fontFeatureSettings: '"kern" 1' }}
                     />
                   </div>
                 </div>
