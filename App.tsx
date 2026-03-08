@@ -21,6 +21,43 @@ interface HeaderInstruction {
 
 type SplitMethod = 'tag' | 'header_text' | 'text_pattern';
 
+const NavButton = ({ id, icon: Icon, label, onClick }: { id: TabId, icon: any, label: string, onClick: (id: TabId) => void }) => (
+  <button
+    onClick={() => onClick(id)}
+    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-right text-slate-600 hover:bg-blue-50 hover:text-blue-600"
+  >
+    <Icon size={18} />
+    <span className="font-semibold text-sm">{label}</span>
+  </button>
+);
+
+const Modal = ({ isOpen, onClose, title, icon: Icon, children }: { isOpen: boolean, onClose: () => void, title: string, icon: any, children: React.ReactNode }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+              <Icon size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800">{title}</h3>
+          </div>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
+          >
+            <X size={24} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-8">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   const [loadedFiles, setLoadedFiles] = useState<ProcessedFile[]>([]);
   const [history, setHistory] = useState<ProcessedFile[][]>([]);
@@ -120,6 +157,11 @@ const App: React.FC = () => {
     setHistory(prev => prev.slice(1));
     setLoadedFiles(previousState);
     addLog("פעולה אחרונה בוטלה. הקבצים הוחזרו למצב קודם.", 'info');
+  };
+
+  const handleNavClick = (id: TabId) => {
+    setActiveTab(id);
+    setIsModalOpen(true);
   };
 
   const handleFiles = async (files: FileList | null) => {
@@ -448,46 +490,6 @@ const App: React.FC = () => {
     addLog(`הורדה החלה: קובץ ZIP מכיל ${loadedFiles.length} קבצים.`, 'success');
   };
 
-  const NavButton = ({ id, icon: Icon, label }: { id: TabId, icon: any, label: string }) => (
-    <button
-      onClick={() => {
-        setActiveTab(id);
-        setIsModalOpen(true);
-      }}
-      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-right text-slate-600 hover:bg-blue-50 hover:text-blue-600"
-    >
-      <Icon size={18} />
-      <span className="font-semibold text-sm">{label}</span>
-    </button>
-  );
-
-  const Modal = ({ isOpen, onClose, title, icon: Icon, children }: { isOpen: boolean, onClose: () => void, title: string, icon: any, children: React.ReactNode }) => {
-    if (!isOpen) return null;
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-        <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-          <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-                <Icon size={24} />
-              </div>
-              <h3 className="text-xl font-bold text-slate-800">{title}</h3>
-            </div>
-            <button 
-              onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
-            >
-              <X size={24} />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-8">
-            {children}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const bulkUpdateInstructions = (field: keyof HeaderInstruction, value: boolean) => {
     setHeaderInstructions(prev => prev.map(ins => ({ ...ins, [field]: value })));
   };
@@ -513,11 +515,11 @@ const App: React.FC = () => {
         </div>
         
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          <NavButton id="process" icon={Wrench} label="חיבור כותרות" />
-          <NavButton id="replace" icon={Search} label="החלפה בכותרות" />
-          <NavButton id="global" icon={Globe} label="החלפה גלובלית" />
-          <NavButton id="split" icon={Scissors} label="חיתוך מסמך" />
-          <NavButton id="fix" icon={Scale} label="נירמול היררכיה" />
+          <NavButton id="process" icon={Wrench} label="חיבור כותרות" onClick={handleNavClick} />
+          <NavButton id="replace" icon={Search} label="החלפה בכותרות" onClick={handleNavClick} />
+          <NavButton id="global" icon={Globe} label="החלפה גלובלית" onClick={handleNavClick} />
+          <NavButton id="split" icon={Scissors} label="חיתוך מסמך" onClick={handleNavClick} />
+          <NavButton id="fix" icon={Scale} label="נירמול היררכיה" onClick={handleNavClick} />
         </nav>
 
         <div className="p-4 border-t border-slate-100">
