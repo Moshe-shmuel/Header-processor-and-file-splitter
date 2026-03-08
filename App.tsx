@@ -77,6 +77,7 @@ const App: React.FC = () => {
   const [splitPattern, setSplitPattern] = useState('');
   const [splitBookName, setSplitBookName] = useState('');
   const [splitAuthor, setSplitAuthor] = useState('');
+  const [splitRemoveWord, setSplitRemoveWord] = useState('');
   const [splitExclude, setSplitExclude] = useState('');
   
   // Split Review State
@@ -95,21 +96,45 @@ const App: React.FC = () => {
 
   const currentFileContent = loadedFiles[previewIdx]?.content;
 
-  const previewHeaders = React.useMemo(() => {
-    if (!currentFileContent) return [];
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(currentFileContent, 'text/html');
-    const nodes = Array.from(doc.querySelectorAll('h1, h2, h3, h4, h5, h6'));
-    
-    return nodes.map(h => ({
-      tagName: h.tagName,
-      textContent: h.textContent || ''
-    }));
-  }, [currentFileContent]);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // --- לוגיקת ניווט וגלילה מעודכנת ---
+  const scrollToHeader = useCallback((startIndex: number, length: number) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.focus();
+    // בחירת הטקסט גורמת ל-textarea לגלול אוטומטית למיקום
+    textarea.setSelectionRange(startIndex, startIndex + length);
+
+    // ביטול הבחירה הכחולה אחרי רגע והשארת הסמן שם
+    setTimeout(() => {
+      textarea.setSelectionRange(startIndex, startIndex);
+    }, 150);
+  }, []);
+
+  const previewHeaders = React.useMemo(() => {
+    if (!currentFileContent) return [];
+    
+    const headers: { tagName: string; textContent: string; startIndex: number; length: number }[] = [];
+    // Regex למציאת כותרות ושמירת המיקום המדויק שלהן בטקסט הגולמי
+    const regex = /<(h[1-6])[^>]*>(.*?)<\/h[1-6]>/gi;
+    let match;
+
+    while ((match = regex.exec(currentFileContent)) !== null) {
+      headers.push({
+        tagName: match[1].toUpperCase(),
+        textContent: match[2].replace(/<[^>]*>/g, ''), // ניקוי תגיות פנימיות
+        startIndex: match.index,
+        length: match[0].length
+      });
+    }
+    
+    return headers;
+  }, [currentFileContent]);
+  // --------------------------------
 
   const insertTag = (openTag: string, closeTag: string = '') => {
     const textarea = textareaRef.current;
@@ -124,14 +149,12 @@ const App: React.FC = () => {
     if (closeTag) {
       replacement = `${openTag}${selectedText}${closeTag}`;
     } else {
-      // For self-closing tags like <br>
       replacement = `${selectedText}${openTag}`;
     }
 
     const newContent = text.substring(0, start) + replacement + text.substring(end);
     handleContentChange(newContent);
 
-    // Restore focus and selection
     setTimeout(() => {
       textarea.focus();
       const newCursorPos = start + openTag.length + selectedText.length + closeTag.length;
@@ -344,8 +367,13 @@ const App: React.FC = () => {
         parts.forEach(part => {
           const isHeader = part.toLowerCase().startsWith(`<${splitTag}`);
           if (isHeader) {
-            const text = part.replace(/<[^>]*>/g, '').trim();
-            const instruction = headerInstructions.find(ins => ins.id.startsWith(`${fIdx}-`) && ins.originalText === text);
+            const originalText = part.replace(/<[^>]*>/g, '').trim();
+            let text = originalText;
+            if (splitRemoveWord) {
+              const removeRegex = new RegExp(splitRemoveWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+              text = text.replace(removeRegex, '').trim();
+            }
+            const instruction = headerInstructions.find(ins => ins.id.startsWith(`${fIdx}-`) && ins.originalText === originalText);
             
             if (instruction && instruction.shouldSplit) {
               if (currentContent.trim()) {
@@ -650,13 +678,14 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex gap-6 flex-1 min-h-0">
-              {/* סרגל ניווט כותרות */}
+              {/* סרגל ניווט כותרות מעודכן עם פונקציית לחיצה */}
               <aside className="w-64 border border-slate-200 rounded-xl bg-slate-50 overflow-y-auto p-4 flex flex-col gap-1 shrink-0">
                 <div className="text-xs font-bold text-slate-400 mb-2 border-b border-slate-200 pb-2">ניווט כותרות</div>
                 {previewHeaders.length > 0 ? previewHeaders.map((h, i) => (
-                  <div
+                  <button
                     key={i}
-                    className={`text-right text-[11px] p-1.5 border-r-2 ${
+                    onClick={() => scrollToHeader(h.startIndex, h.length)}
+                    className={`text-right text-[11px] p-1.5 border-r-2 transition-colors hover:bg-white flex flex-col items-start w-full ${
                       h.tagName === 'H1' ? 'font-bold border-blue-500 bg-blue-50/50' : 
                       h.tagName === 'H2' ? 'mr-2 border-blue-300' : 
                       h.tagName === 'H3' ? 'mr-4 border-slate-300' :
@@ -665,14 +694,14 @@ const App: React.FC = () => {
                       'mr-10 border-slate-50'
                     }`}
                   >
-                    {h.textContent}
-                  </div>
+                    <span className="opacity-50 text-[9px] block mb-0.5">{h.tagName}</span>
+                    <span className="line-clamp-2">{h.textContent}</span>
+                  </button>
                 )) : <div className="text-xs text-slate-400 italic">לא נמצאו כותרות</div>}
               </aside>
 
               {/* אזור העריכה */}
               <div className="flex-1 flex flex-col min-h-0 h-full gap-4">
-                {/* סרגל עיצוב טקסט */}
                 <div className="flex flex-wrap items-center gap-1 p-2 bg-slate-50 border border-slate-200 rounded-xl shrink-0">
                   <div className="flex items-center gap-1 px-2 border-l border-slate-200 ml-2">
                     {['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].map(h => (
@@ -722,7 +751,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Modals */}
+          {/* Modals - לא שונו */}
           <Modal 
             isOpen={isModalOpen && activeTab === 'process'} 
             onClose={() => setIsModalOpen(false)} 
@@ -857,7 +886,7 @@ const App: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                       <label className="block text-sm font-bold text-slate-700 mb-2">שם המחבר להוספה:</label>
                       <input type="text" value={splitAuthor} onChange={e => setSplitAuthor(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
@@ -865,6 +894,10 @@ const App: React.FC = () => {
                     <div>
                       <label className="block text-sm font-bold text-slate-700 mb-2">שם הספר להוספה (בתחילת שם הקובץ):</label>
                       <input type="text" value={splitBookName} onChange={e => setSplitBookName(e.target.value)} placeholder="לדוגמה: יד דוד על..." className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">מילה להסרה מהכותרת:</label>
+                      <input type="text" value={splitRemoveWord} onChange={e => setSplitRemoveWord(e.target.value)} placeholder="לדוגמה: מסכת" className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                   </div>
                   
