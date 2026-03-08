@@ -5,7 +5,7 @@ import {
   Upload, Folder, Trash2, Download, FileText, 
   CheckCircle, AlertCircle, ChevronRight, Menu,
   Settings, ListCheck, ArrowLeft, Play, Undo2, Filter, Type, X,
-  Bold, Italic, Underline
+  Bold, Italic, Underline, RefreshCw, AArrowUp, AArrowDown
 } from 'lucide-react';
 import { ProcessedFile, TabId, LogEntry, HierarchySkip } from './types';
 
@@ -362,7 +362,7 @@ const App: React.FC = () => {
               const closeTag = `</${splitTag}>`;
               currentContent = `${openTag}${instruction.addBook ? splitBookName + " " : ""}${text}${closeTag}`;
               if (instruction.addAuthor) {
-                currentContent += `\n<p>${splitAuthor}</p>`;
+                currentContent += `\n${splitAuthor}`;
               }
               idx++;
             } else {
@@ -432,6 +432,41 @@ const App: React.FC = () => {
 
     setLoadedFiles(nextFiles);
     addLog(`החלפה בכותרות הושלמה. עודכנו ${totalUpdated} כותרות בטווח ${repScope}.`, 'success');
+  };
+
+  const applySyncH1ToFileName = () => {
+    pushToHistory();
+    let totalUpdated = 0;
+    const nextFiles = loadedFiles.map(f => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(f.content, 'text/html');
+      const h1 = doc.querySelector('h1');
+      if (h1 && h1.textContent?.trim()) {
+        totalUpdated++;
+        return { ...f, name: h1.textContent.trim() };
+      }
+      return f;
+    });
+    setLoadedFiles(nextFiles);
+    addLog(`שם הקובץ עודכן לפי כותרת H1 ב-${totalUpdated} קבצים.`, 'success');
+  };
+
+  const applySyncFileNameToH1 = () => {
+    pushToHistory();
+    let totalUpdated = 0;
+    const nextFiles = loadedFiles.map(f => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(f.content, 'text/html');
+      const h1 = doc.querySelector('h1');
+      if (h1) {
+        h1.textContent = f.name;
+        totalUpdated++;
+        return { ...f, content: doc.body.innerHTML };
+      }
+      return f;
+    });
+    setLoadedFiles(nextFiles);
+    addLog(`כותרת H1 עודכנה לפי שם הקובץ ב-${totalUpdated} קבצים.`, 'success');
   };
 
   const applyFixHierarchy = () => {
@@ -519,11 +554,12 @@ const App: React.FC = () => {
           <NavButton id="replace" icon={Search} label="החלפה בכותרות" onClick={handleNavClick} />
           <NavButton id="global" icon={Globe} label="החלפה גלובלית" onClick={handleNavClick} />
           <NavButton id="split" icon={Scissors} label="חיתוך מסמך" onClick={handleNavClick} />
+          <NavButton id="sync_h1" icon={RefreshCw} label="סנכרון H1 ושם קובץ" onClick={handleNavClick} />
           <NavButton id="fix" icon={Scale} label="נירמול היררכיה" onClick={handleNavClick} />
         </nav>
 
         <div className="p-4 border-t border-slate-100">
-           <div className="text-xs text-slate-400 text-center">v2 - Corrected Log Counting</div>
+           <div className="text-xs text-slate-400 text-center">v2 - Advanced </div>
         </div>
       </aside>
 
@@ -663,12 +699,12 @@ const App: React.FC = () => {
                       <Underline size={14} />
                     </button>
                   </div>
-                  <div className="flex items-center gap-1 px-2">
-                    <button onClick={() => insertTag('<p>', '</p>')} className="px-2 py-1 text-[10px] font-bold bg-white border border-slate-200 rounded hover:bg-blue-50 hover:text-blue-600 transition-colors">
-                      P
+                  <div className="flex items-center gap-1 px-2 border-l border-slate-200 ml-2">
+                    <button onClick={() => insertTag('<big>', '</big>')} className="p-1.5 bg-white border border-slate-200 rounded hover:bg-blue-50 hover:text-blue-600 transition-colors" title="טקסט גדול">
+                      <AArrowUp size={14} />
                     </button>
-                    <button onClick={() => insertTag('<br>', '')} className="px-2 py-1 text-[10px] font-bold bg-white border border-slate-200 rounded hover:bg-blue-50 hover:text-blue-600 transition-colors">
-                      BR
+                    <button onClick={() => insertTag('<small>', '</small>')} className="p-1.5 bg-white border border-slate-200 rounded hover:bg-blue-50 hover:text-blue-600 transition-colors" title="טקסט קטן">
+                      <AArrowDown size={14} />
                     </button>
                   </div>
                 </div>
@@ -952,6 +988,44 @@ const App: React.FC = () => {
                   </button>
                 </div>
               )}
+            </div>
+          </Modal>
+
+          <Modal 
+            isOpen={isModalOpen && activeTab === 'sync_h1'} 
+            onClose={() => setIsModalOpen(false)} 
+            title="סנכרון כותרת H1 ושם קובץ" 
+            icon={RefreshCw}
+          >
+            <div className="space-y-6">
+              <div className="p-6 bg-blue-50 border border-blue-100 rounded-2xl mb-6">
+                <p className="text-sm text-blue-800 mb-4 font-medium">
+                  בחר את כיוון הסנכרון בין כותרת ה-H1 הראשונה במסמך לבין שם הקובץ:
+                </p>
+                <div className="grid grid-cols-1 gap-4">
+                  <button 
+                    onClick={() => { applySyncH1ToFileName(); setIsModalOpen(false); }}
+                    className="flex items-center justify-between p-4 bg-white border border-blue-200 rounded-xl hover:bg-blue-100 transition-all group"
+                  >
+                    <div className="text-right">
+                      <div className="font-bold text-slate-800">שנה שם קובץ לפי כותרת H1</div>
+                      <div className="text-xs text-slate-500">שם הקובץ יתעדכן לפי התוכן של ה-H1 הראשון</div>
+                    </div>
+                    <ChevronRight size={20} className="text-blue-400 group-hover:translate-x-[-4px] transition-transform" />
+                  </button>
+                  
+                  <button 
+                    onClick={() => { applySyncFileNameToH1(); setIsModalOpen(false); }}
+                    className="flex items-center justify-between p-4 bg-white border border-blue-200 rounded-xl hover:bg-blue-100 transition-all group"
+                  >
+                    <div className="text-right">
+                      <div className="font-bold text-slate-800">שנה כותרת H1 לפי שם הקובץ</div>
+                      <div className="text-xs text-slate-500">התוכן של ה-H1 הראשון יתעדכן לפי שם הקובץ הנוכחי</div>
+                    </div>
+                    <ChevronRight size={20} className="text-blue-400 group-hover:translate-x-[-4px] transition-transform" />
+                  </button>
+                </div>
+              </div>
             </div>
           </Modal>
 
