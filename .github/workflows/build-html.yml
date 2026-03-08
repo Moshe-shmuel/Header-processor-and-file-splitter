@@ -1,19 +1,41 @@
 name: Build Single HTML
+
 on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    # הוספת הרשאות כתיבה כדי ש-Actions יוכל ליצור תגית
+    permissions:
+      contents: write
+      
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # חשוב כדי להביא את היסטוריית התגיות
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - run: npm install
       - run: npm install vite-plugin-singlefile --save-dev
       - run: npm run build
+
       - name: Upload HTML
         uses: actions/upload-artifact@v4
         with:
           name: my-single-page-app
           path: dist/index.html
+
+      # שלב חדש: יצירת תגית דחיפתה ל-GitHub
+      - name: Create and Push Tag
+        run: |
+          # יצירת שם תגית ייחודי (למשל build-מספר הרצה)
+          TAG_NAME="build-${{ github.run_number }}"
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
