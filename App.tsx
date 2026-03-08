@@ -107,14 +107,18 @@ const App: React.FC = () => {
 
     isProgrammaticFocus.current = true;
     textarea.focus();
-    // בחירת הטקסט גורמת ל-textarea לגלול אוטומטית למיקום
-    textarea.setSelectionRange(startIndex, startIndex + length);
-
-    // ביטול הבחירה הכחולה אחרי רגע והשארת הסמן שם
+    
+    // שימוש ב-setTimeout(0) מבטיח שהפוקוס הושלם והדפדפן מוכן לגלילה
     setTimeout(() => {
-      textarea.setSelectionRange(startIndex, startIndex);
-      isProgrammaticFocus.current = false;
-    }, 150);
+      // בחירת הטקסט גורמת ל-textarea לגלול אוטומטית למיקום
+      textarea.setSelectionRange(startIndex, startIndex + length);
+
+      // ביטול הבחירה הכחולה אחרי רגע והשארת הסמן שם
+      setTimeout(() => {
+        textarea.setSelectionRange(startIndex, startIndex);
+        isProgrammaticFocus.current = false;
+      }, 200);
+    }, 0);
   }, []);
 
   const previewHeaders = React.useMemo(() => {
@@ -682,6 +686,7 @@ const App: React.FC = () => {
                   <button
                     key={i}
                     onClick={() => scrollToHeader(h.startIndex, h.length)}
+                    onMouseDown={(e) => e.preventDefault()}
                     className={`text-right text-[11px] p-1.5 border-r-2 transition-colors hover:bg-white flex flex-col items-start w-full ${
                       h.tagName === 'H1' ? 'font-bold border-blue-500 bg-blue-50/50' : 
                       h.tagName === 'H2' ? 'mr-2 border-blue-300' : 
