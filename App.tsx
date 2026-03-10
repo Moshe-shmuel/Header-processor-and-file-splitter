@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import JSZip from 'jszip';
+import { isEqual } from 'lodash';
 import { 
   Wrench, Search, Globe, Scissors, Scale, Eye, 
   Upload, Folder, Trash2, Download, FileText, 
@@ -178,13 +179,30 @@ const App: React.FC = () => {
   };
 
   const pushToHistory = () => {
-    setHistory(prev => [loadedFiles, ...prev].slice(0, 20));
+    setHistory(prev => {
+      if (prev.length > 0 && isEqual(prev[0], loadedFiles)) {
+        return prev;
+      }
+      return [loadedFiles, ...prev].slice(0, 20);
+    });
   };
 
   const undo = () => {
     if (history.length === 0) return;
-    const previousState = history[0];
-    setHistory(prev => prev.slice(1));
+    
+    // Find the first state in history that is different from current
+    let targetIdx = 0;
+    while (targetIdx < history.length && isEqual(history[targetIdx], loadedFiles)) {
+      targetIdx++;
+    }
+
+    if (targetIdx >= history.length) {
+      setHistory([]);
+      return;
+    }
+
+    const previousState = history[targetIdx];
+    setHistory(history.slice(targetIdx + 1));
     setLoadedFiles(previousState);
     addLog("פעולה אחרונה בוטלה. הקבצים הוחזרו למצב קודם.", 'info');
   };
@@ -747,7 +765,7 @@ const App: React.FC = () => {
                     ref={textareaRef}
                     value={loadedFiles[previewIdx]?.content || ''}
                     onChange={(e) => handleContentChange(e.target.value)}
-                    onMouseDown={() => pushToHistory()}
+                    onFocus={() => pushToHistory()}
                     className="w-full h-full bg-white p-8 rounded-2xl border border-slate-200 font-['Assistant'] text-lg leading-[1.6] text-slate-800 outline-none focus:ring-2 focus:ring-blue-400 resize-none overflow-auto shadow-inner"
                     dir="rtl"
                     placeholder="אין תוכן להצגה או עריכה"
