@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import JSZip from 'jszip';
+import { isEqual } from 'lodash';
 import { 
   Wrench, Search, Globe, Scissors, Scale, Eye, 
   Upload, Folder, Trash2, Download, FileText, 
@@ -178,7 +179,12 @@ const App: React.FC = () => {
   };
 
   const pushToHistory = () => {
-    setHistory(prev => [loadedFiles, ...prev].slice(0, 20));
+    setHistory(prev => {
+      if (prev.length > 0 && isEqual(prev[0], loadedFiles)) {
+        return prev;
+      }
+      return [loadedFiles, ...prev].slice(0, 20);
+    });
   };
 
   const undo = () => {
