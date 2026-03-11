@@ -101,26 +101,22 @@ const App: React.FC = () => {
   const folderInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // --- לוגיקת ניווט וגלילה מעודכנת ---
+// --- לוגיקת ניווט וגלילה מעודכנת (פתרון 1) ---
   const scrollToHeader = useCallback((startIndex: number, length: number) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
     textarea.focus();
-    // בחירת הטקסט גורמת ל-textarea לגלול אוטומטית למיקום
+    // בחירת הטקסט גורמת ל-textarea לגלול אוטומטית למיקום (חלקית)
     textarea.setSelectionRange(startIndex, startIndex + length);
 
     // ביטול הבחירה הכחולה אחרי זמן קצר מאוד והשארת הסמן שם
-    // קיצור משך ההשחרה לפי בקשת המשתמש
     setTimeout(() => {
       textarea.setSelectionRange(startIndex, startIndex);
       
-      // כפיית גלילה על ידי תו זמני (Zero-width space) כדי לוודא שהדפדפן מעדכן את המיקום
-      const val = textarea.value;
-      textarea.value = val.substring(0, startIndex) + "\u200b" + val.substring(startIndex);
-      textarea.setSelectionRange(startIndex + 1, startIndex + 1);
-      textarea.value = val;
-      textarea.setSelectionRange(startIndex, startIndex);
+      // כפיית גלילה על ידי הסרת פוקוס והחזרתו מיד
+      textarea.blur();
+      textarea.focus();
     }, 0);
   }, []);
 
