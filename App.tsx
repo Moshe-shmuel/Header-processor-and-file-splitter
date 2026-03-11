@@ -121,7 +121,7 @@ const App: React.FC = () => {
       textarea.setSelectionRange(startIndex + 1, startIndex + 1);
       textarea.value = val;
       textarea.setSelectionRange(startIndex, startIndex);
-    }, 40);
+    }, 0);
   }, []);
 
   const previewHeaders = React.useMemo(() => {
